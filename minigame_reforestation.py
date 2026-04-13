@@ -13,7 +13,7 @@ SNOW_COLORS = [
     (228, 239, 250),
     (215, 228, 242),
 ]
-TILE_SIZE_MG = 32   # taille des tuiles dans le mini jeu
+TILE_SIZE_MG = 32   
 
 
 def build_terrain(width, height, seed=42):
@@ -43,7 +43,6 @@ def build_decorations(area, spot_positions, seed=12):
             cx = tx + TILE // 2
             cy = ty + TILE // 2
 
-            # Ne pas placer sur les spots ni trop près du bord
             too_close = any(math.hypot(cx - sx, cy - sy) < 48 for sx, sy in spot_positions)
             near_edge = col == 0 or row == 0 or col == cols - 1 or row == rows - 1
             if too_close or near_edge:
@@ -90,8 +89,8 @@ class PlantSpot:
         self.x = x
         self.y = y
         self.planted = False
-        self.grow_anim = 0.0   # 0..1 animation d'apparition du pin
-        self.pulse = 0.0       # anneau vert quand le joueur est proche
+        self.grow_anim = 0.0   
+        self.pulse = 0.0       
 
     def is_near(self, px, py, margin=22):
         return math.hypot(px - self.x, py - self.y) < self.RADIUS + margin
@@ -113,15 +112,13 @@ class PlantSpot:
 
     def _draw_empty(self, screen, x, y):
         r = self.RADIUS
-        # Sol creusé (ellipse brune)
         pygame.draw.ellipse(screen, (148, 110, 72),
                             (x - r, y - int(r * 0.55), r * 2, int(r * 1.1)))
         pygame.draw.ellipse(screen, (172, 134, 92),
                             (x - r + 5, y - int(r * 0.45) + 2, r * 2 - 10, int(r * 0.9) - 4))
-        # Croix de plantation
+        
         pygame.draw.line(screen, (200, 240, 160), (x - 8, y), (x + 8, y), 2)
         pygame.draw.line(screen, (200, 240, 160), (x, y - 8), (x, y + 8), 2)
-        # Anneau de pulsation proximité
         if self.pulse > 0:
             alpha = int((math.sin(self.pulse) * 0.5 + 0.5) * 130)
             surf = pygame.Surface((r * 2 + 24, r * 2 + 24), pygame.SRCALPHA)
@@ -284,7 +281,6 @@ class MiniGameReforestation:
     # ── Draw ──────────────────────────────────────────────────────────────────
 
     def draw(self):
-        # Fond neige
         draw_terrain(self.screen, self.terrain_tiles)
 
         # Bordure de zone

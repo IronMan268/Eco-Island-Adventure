@@ -4,8 +4,52 @@ from intro import Intro
 from world import World
 from player import Player
 from pollution import PollutionSystem
-from npc import PollutionNPC
-from minigame_reforestation import MiniGameReforestation
+from npc import MissionNPC
+from npc_data import NPCS_DATA, npc_tile_to_pixel
+from end_screen import EndScreen
+
+
+class PlaceholderMiniGame:
+    def __init__(self, screen, player, mission_key):
+        self.screen = screen
+        self.player = player
+        self.mission_key = mission_key
+        self.finished = False
+        self.success = False
+
+        self.saved_x = player.rect.x
+        self.saved_y = player.rect.y
+
+        self.title_font = pygame.font.SysFont("consolas", 32, bold=True)
+        self.text_font = pygame.font.SysFont("consolas", 20, bold=True)
+
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.finished = True
+                self.success = True
+            elif event.key == pygame.K_ESCAPE:
+                self.finished = True
+                self.success = False
+
+    def update(self, dt):
+        pass
+
+    def restore_player_position(self):
+        self.player.rect.x = self.saved_x
+        self.player.rect.y = self.saved_y
+
+    def draw(self):
+        self.screen.fill((12, 18, 30))
+        title = self.title_font.render("MINI-JEU A AJOUTER", True, WHITE)
+        line1 = self.text_font.render(f"Mission : {self.mission_key}", True, WHITE)
+        line2 = self.text_font.render("ENTREE = mission reussie", True, WHITE)
+        line3 = self.text_font.render("ECHAP = annuler", True, WHITE)
+
+        self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 180))
+        self.screen.blit(line1, (WIDTH // 2 - line1.get_width() // 2, 250))
+        self.screen.blit(line2, (WIDTH // 2 - line2.get_width() // 2, 300))
+        self.screen.blit(line3, (WIDTH // 2 - line3.get_width() // 2, 335))
 
 
 class Game:
@@ -19,42 +63,74 @@ class Game:
 
         self.intro = Intro(self.screen)
 
+        self.victory_screen = EndScreen("assets/victoire.png")
+        self.lose_screen = EndScreen("assets/lose.png")
+
         self.world = World()
         spawn_x, spawn_y = self.world.get_spawn_position()
         self.player = Player(spawn_x, spawn_y)
 
         self.pollution = PollutionSystem()
 
-        # Ours place dans une zone plus vide de l'ile
-        bear_tile_x = 42
-        bear_tile_y = 92
-
-        npc_x = bear_tile_x * TILE_SIZE + 4
-        npc_y = bear_tile_y * TILE_SIZE - 8
-
-        self.pollution_npc = PollutionNPC(npc_x, npc_y)
+        self.npcs = self.create_npcs()
 
         self.minigame = None
+        self.current_npc = None
         self.game_over_reason = ""
+
+    def create_npcs(self):
+        npcs = []
+
+        for data in NPCS_DATA:
+            px, py = npc_tile_to_pixel(data["tile_x"], data["tile_y"])
+
+            npc_config = dict(data)
+            npc_config["x"] = px
+            npc_config["y"] = py
+
+            npcs.append(MissionNPC(npc_config))
+
+        return npcs
 
     def restart_game(self):
         self.__init__()
 
-    def start_reforestation_minigame(self):
-        if self.pollution_npc.mission_done:
+    def start_npc_mission(self, npc):
+        if npc.mission_done:
             return
 
-        self.minigame = MiniGameReforestation(self.screen, self.player)
+        self.current_npc = npc
+        self.minigame = self.build_minigame_for(npc.mission_key)
         self.state = "minigame"
 
-    def finish_reforestation_minigame(self):
-        if self.minigame.success:
-            self.pollution.remove_pollution(20)
-            self.pollution_npc.set_mission_done(True)
+    def build_minigame_for(self, mission_key):
+        return PlaceholderMiniGame(self.screen, self.player, mission_key)
 
-        self.minigame.restore_player_position()
+    def check_victory(self):
+        if self.pollution.value <= 0:
+            self.pollution.set_pollution(0)
+            self.state = "victory"
+            return True
+        return False
+
+    def finish_current_minigame(self):
+        if self.current_npc and self.minigame and self.minigame.success:
+            self.pollution.remove_pollution(self.current_npc.pollution_reward)
+            self.current_npc.set_mission_done(True)
+
+        if self.minigame:
+            self.minigame.restore_player_position()
+
         self.minigame = None
+        self.current_npc = None
+
+        if self.check_victory():
+            return
+
         self.state = "world"
+
+    def all_npcs_done(self):
+        return all(npc.mission_done for npc in self.npcs)
 
     def set_game_over(self, reason="La pollution a atteint 100%"):
         self.game_over_reason = reason
@@ -71,16 +147,24 @@ class Game:
                     self.state = "world"
 
             elif self.state == "world":
-                result = self.pollution_npc.handle_event(event)
-                if result == "accept":
-                    self.start_reforestation_minigame()
+                for npc in self.npcs:
+                    result = npc.handle_event(event)
+                    if result == "accept":
+                        self.start_npc_mission(npc)
+                        break
 
             elif self.state == "minigame":
                 self.minigame.handle_event(event)
 
+                if self.minigame.finished:
+                    self.finish_current_minigame()
+
+            elif self.state == "victory":
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN and self.minigame.finished:
-                        self.finish_reforestation_minigame()
+                    if event.key == pygame.K_r:
+                        self.restart_game()
+                    elif event.key == pygame.K_ESCAPE:
+                        self.running = False
 
             elif self.state == "game_over":
                 if event.type == pygame.KEYDOWN:
@@ -97,39 +181,21 @@ class Game:
             keys = pygame.key.get_pressed()
             self.player.update(keys, self.world, dt)
             self.pollution.update(dt)
-            self.pollution_npc.update(self.player, dt)
+
+            for npc in self.npcs:
+                npc.update(self.player, dt)
+
+            if self.check_victory():
+                return
 
             if self.pollution.value >= self.pollution.max_value:
-                self.set_game_over("La pollution a atteint 100%.")
+                self.set_game_over("La pollution a atteint 100%")
 
         elif self.state == "minigame":
             self.minigame.update(dt)
 
-        elif self.state == "game_over":
+        elif self.state in ("victory", "game_over"):
             pass
-
-    def draw_game_over(self):
-        self.screen.fill((15, 10, 16))
-
-        title_font = pygame.font.SysFont("consolas", 46, bold=True)
-        text_font = pygame.font.SysFont("consolas", 22, bold=True)
-        small_font = pygame.font.SysFont("consolas", 18, bold=True)
-
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((120, 0, 0, 35))
-        self.screen.blit(overlay, (0, 0))
-
-        box = pygame.Rect(140, 160, WIDTH - 280, 250)
-        pygame.draw.rect(self.screen, (35, 12, 18), box, border_radius=18)
-        pygame.draw.rect(self.screen, (255, 140, 140), box, 3, border_radius=18)
-
-        title = title_font.render("GAME OVER", True, WHITE)
-        subtitle = text_font.render(self.game_over_reason, True, (255, 220, 220))
-        info = small_font.render("Appuie sur R pour recommencer ou ESC pour quitter", True, WHITE)
-
-        self.screen.blit(title, (box.centerx - title.get_width() // 2, box.y + 45))
-        self.screen.blit(subtitle, (box.centerx - subtitle.get_width() // 2, box.y + 120))
-        self.screen.blit(info, (box.centerx - info.get_width() // 2, box.y + 185))
 
     def draw(self):
         if self.state == "intro":
@@ -146,16 +212,24 @@ class Game:
             camera_y = max(0, min(camera_y, max_camera_y))
 
             self.world.draw(self.screen, camera_x, camera_y)
-            self.pollution_npc.draw(self.screen, camera_x, camera_y)
+
+            for npc in sorted(self.npcs, key=lambda n: n.rect.y):
+                npc.draw(self.screen, camera_x, camera_y)
+
             self.player.draw(self.screen, camera_x, camera_y)
             self.pollution.draw(self.screen)
-            self.pollution_npc.draw_dialog(self.screen)
+
+            for npc in self.npcs:
+                npc.draw_dialog(self.screen)
 
         elif self.state == "minigame":
             self.minigame.draw()
 
+        elif self.state == "victory":
+            self.victory_screen.draw(self.screen)
+
         elif self.state == "game_over":
-            self.draw_game_over()
+            self.lose_screen.draw(self.screen)
 
         pygame.display.flip()
 

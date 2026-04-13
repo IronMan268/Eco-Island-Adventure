@@ -1,9 +1,7 @@
 import os
 import pygame
 from constants import WIDTH, HEIGHT, WHITE
-
 from world.decorations import draw_snow_pine
-
 
 
 def trim_transparent(surface):
@@ -17,10 +15,14 @@ def trim_transparent(surface):
     return surface.subsurface(rect).copy()
 
 
-class PollutionNPC:
-    def __init__(self, x, y, image_path="assets/npc_pollution.png"):
-        self.x = int(x)
-        self.y = int(y)
+class MissionNPC:
+    def __init__(self, config):
+        self.id = config["id"]
+        self.name = config["name"]
+        self.image_path = config["image"]
+
+        self.x = int(config["x"])
+        self.y = int(config["y"])
 
         self.rect = pygame.Rect(self.x, self.y, 34, 44)
 
@@ -31,25 +33,24 @@ class PollutionNPC:
         self.show_prompt = False
         self.dialog_open = False
 
-        self.name = "Ours protecteur"
-
-        self.default_lines = [
-            "Cette partie de l'ile est encore fragile...",
-            "Veux-tu m'aider a replanter des pousses ?",
-            "Si tu reussis, la pollution baissera de 20%."
-        ]
-
-        self.done_lines = [
-            "Merci pour ton aide.",
-            "Regarde, la nature revient deja.",
-            "De nouveaux sapins ont pousse ici."
-        ]
-
+        self.default_lines = list(config.get("default_lines", []))
+        self.done_lines = list(config.get("done_lines", []))
         self.current_lines = list(self.default_lines)
+
+        self.mission_key = config.get("mission_key", self.id)
+        self.pollution_reward = config.get("pollution_reward", 0)
+        self.reward_decor = list(config.get("reward_decor", []))
 
         self.image = None
         self.image_offset_y = 4
+        self._load_image(self.image_path)
 
+        self.typewriter_speed = 42.0
+        self.visible_chars = 0.0
+
+        self.mission_done = False
+
+    def _load_image(self, image_path):
         if os.path.exists(image_path):
             try:
                 loaded = pygame.image.load(image_path).convert_alpha()
@@ -66,27 +67,9 @@ class PollutionNPC:
             except Exception:
                 self.image = None
 
-        self.typewriter_speed = 42.0
-        self.visible_chars = 0.0
-
-        self.mission_done = False
-
-        # arbres de recompense
-        # coordonnees plus eloignees de l'ours pour eviter la superposition
-        # dx/dy en pixels dans le monde
-        self.reward_trees = [
-            {"dx": -90, "dy": 6, "size": 0},
-            {"dx": -58, "dy": 34, "size": 1},
-            {"dx": 62, "dy": 10, "size": 0},
-            {"dx": 96, "dy": 36, "size": 1},
-        ]
-
     def set_mission_done(self, value=True):
         self.mission_done = value
-        if self.mission_done:
-            self.current_lines = list(self.done_lines)
-        else:
-            self.current_lines = list(self.default_lines)
+        self.current_lines = list(self.done_lines if value else self.default_lines)
 
     def reset_typewriter(self):
         self.visible_chars = 0.0
@@ -147,22 +130,32 @@ class PollutionNPC:
 
         return None
 
-    def draw_reward_trees(self, screen, camera_x, camera_y):
+    def draw_reward_decor(self, screen, camera_x, camera_y):
         if not self.mission_done:
             return
 
         base_x = self.rect.centerx
         base_y = self.rect.bottom - 8
 
-        # on utilise exactement le meme dessin que les arbres de la map
-        for tree in self.reward_trees:
-            tx = base_x + tree["dx"] - camera_x
-            ty = base_y + tree["dy"] - camera_y
-            draw_snow_pine(screen, tx, ty, tree["size"])
+        for item in self.reward_decor:
+            item_type = item.get("type", "snow_pine")
+            tx = base_x + item.get("dx", 0) - camera_x
+            ty = base_y + item.get("dy", 0) - camera_y
+
+            if item_type == "snow_pine":
+                draw_snow_pine(screen, tx, ty, item.get("size", 0))
+
+    def draw_body_fallback(self, screen, draw_x, draw_y):
+        pygame.draw.ellipse(screen, (205, 220, 230), (draw_x + 6, draw_y + 14, 24, 20))
+        pygame.draw.circle(screen, (225, 235, 242), (draw_x + 18, draw_y + 11), 11)
+        pygame.draw.circle(screen, (210, 220, 230), (draw_x + 11, draw_y + 3), 4)
+        pygame.draw.circle(screen, (210, 220, 230), (draw_x + 25, draw_y + 3), 4)
+        pygame.draw.circle(screen, (30, 30, 30), (draw_x + 15, draw_y + 10), 1)
+        pygame.draw.circle(screen, (30, 30, 30), (draw_x + 21, draw_y + 10), 1)
+        pygame.draw.circle(screen, (50, 50, 50), (draw_x + 18, draw_y + 14), 2)
 
     def draw(self, screen, camera_x, camera_y):
-        # arbres derriere l'ours
-        self.draw_reward_trees(screen, camera_x, camera_y)
+        self.draw_reward_decor(screen, camera_x, camera_y)
 
         draw_x = self.rect.x - camera_x
         draw_y = self.rect.y - camera_y
@@ -176,13 +169,7 @@ class PollutionNPC:
             img_y = draw_y - self.image.get_height() + self.rect.height + self.image_offset_y
             screen.blit(self.image, (img_x, img_y))
         else:
-            pygame.draw.ellipse(screen, (205, 220, 230), (draw_x + 6, draw_y + 14, 24, 20))
-            pygame.draw.circle(screen, (225, 235, 242), (draw_x + 18, draw_y + 11), 11)
-            pygame.draw.circle(screen, (210, 220, 230), (draw_x + 11, draw_y + 3), 4)
-            pygame.draw.circle(screen, (210, 220, 230), (draw_x + 25, draw_y + 3), 4)
-            pygame.draw.circle(screen, (30, 30, 30), (draw_x + 15, draw_y + 10), 1)
-            pygame.draw.circle(screen, (30, 30, 30), (draw_x + 21, draw_y + 10), 1)
-            pygame.draw.circle(screen, (50, 50, 50), (draw_x + 18, draw_y + 14), 2)
+            self.draw_body_fallback(screen, draw_x, draw_y)
 
         if self.show_prompt and not self.dialog_open:
             bubble_bg = pygame.Surface((26, 26), pygame.SRCALPHA)

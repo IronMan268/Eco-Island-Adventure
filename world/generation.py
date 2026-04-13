@@ -1,6 +1,7 @@
 import random
 import pygame
 from .decorations import generate_zone_decorations
+from npc_data import NPCS_DATA
 
 
 def in_bounds(x, y, width, height):
@@ -34,19 +35,16 @@ def generate_base_tiles(width, height):
 def carve_spawn_zone(tiles, spawn_tile, width, height):
     sx, sy = spawn_tile
 
-    # place centrale du spawn
     for y in range(sy - 5, sy + 6):
         for x in range(sx - 6, sx + 7):
             if in_bounds(x, y, width, height):
                 tiles[y][x] = 3
 
-    # chemin vertical
     for y in range(sy - 15, sy + 16):
         for x in range(sx - 1, sx + 2):
             if in_bounds(x, y, width, height):
                 tiles[y][x] = 3
 
-    # chemin horizontal
     for x in range(sx - 20, sx + 21):
         for y in range(sy - 1, sy + 2):
             if in_bounds(x, y, width, height):
@@ -62,8 +60,6 @@ def create_zones(width, height, spawn_tile):
         "lake": pygame.Rect(sx - 20, sy - 38, 40, 20),
         "cliffs": pygame.Rect(width - 56, 18, 34, 44),
         "polluted": pygame.Rect(width - 64, height - 44, 34, 26),
-
-        # village d'igloos
         "igloo_village": pygame.Rect(sx - 14, sy - 10, 28, 20),
     }
 
@@ -124,6 +120,31 @@ def apply_igloo_village_zone(tiles, zone, width, height, spawn_tile):
                 tiles[y][x] = 3
 
 
+def carve_path_line(tiles, x1, y1, x2, y2, width, height, thickness=1):
+    x = x1
+    y = y1
+
+    while x != x2:
+        step = 1 if x2 > x else -1
+        x += step
+        for oy in range(-thickness, thickness + 1):
+            for ox in range(-thickness, thickness + 1):
+                tx = x + ox
+                ty = y + oy
+                if in_bounds(tx, ty, width, height) and tiles[ty][tx] != 0:
+                    tiles[ty][tx] = 3
+
+    while y != y2:
+        step = 1 if y2 > y else -1
+        y += step
+        for oy in range(-thickness, thickness + 1):
+            for ox in range(-thickness, thickness + 1):
+                tx = x + ox
+                ty = y + oy
+                if in_bounds(tx, ty, width, height) and tiles[ty][tx] != 0:
+                    tiles[ty][tx] = 3
+
+
 def connect_paths(tiles, zones, spawn_tile, width, height):
     sx, sy = spawn_tile
 
@@ -131,19 +152,16 @@ def connect_paths(tiles, zones, spawn_tile, width, height):
     lake = zones["lake"]
     polluted = zones["polluted"]
 
-    # chemin vers forêt
     for x in range(forest.right - 2, sx + 1):
         for y in range(sy + 10, sy + 13):
             if in_bounds(x, y, width, height) and tiles[y][x] != 0:
                 tiles[y][x] = 3
 
-    # chemin vers lac
     for y in range(lake.bottom, sy - 1):
         for x in range(sx - 1, sx + 2):
             if in_bounds(x, y, width, height) and tiles[y][x] != 0:
                 tiles[y][x] = 3
 
-    # chemin vers zone polluée
     for x in range(sx, polluted.left + 4):
         for y in range(sy + 18, sy + 21):
             if in_bounds(x, y, width, height) and tiles[y][x] != 0:
@@ -153,6 +171,24 @@ def connect_paths(tiles, zones, spawn_tile, width, height):
         for x in range(polluted.left + 2, polluted.left + 5):
             if in_bounds(x, y, width, height) and tiles[y][x] != 0:
                 tiles[y][x] = 3
+
+
+def connect_paths_to_all_npcs(tiles, spawn_tile, width, height):
+    sx, sy = spawn_tile
+
+    for npc in NPCS_DATA:
+        tx = npc["tile_x"]
+        ty = npc["tile_y"]
+
+        # part du spawn puis relie en L
+        carve_path_line(tiles, sx, sy, tx, sy, width, height, thickness=1)
+        carve_path_line(tiles, tx, sy, tx, ty, width, height, thickness=1)
+
+        # petite place autour du npc
+        for y in range(ty - 1, ty + 2):
+            for x in range(tx - 1, tx + 2):
+                if in_bounds(x, y, width, height) and tiles[y][x] != 0:
+                    tiles[y][x] = 3
 
 
 def generate_world_data(width, height, spawn_tile):
@@ -167,6 +203,7 @@ def generate_world_data(width, height, spawn_tile):
     apply_igloo_village_zone(tiles, zones["igloo_village"], width, height, spawn_tile)
 
     connect_paths(tiles, zones, spawn_tile, width, height)
+    connect_paths_to_all_npcs(tiles, spawn_tile, width, height)
 
     decorations, collision_rects = generate_zone_decorations(
         tiles=tiles,

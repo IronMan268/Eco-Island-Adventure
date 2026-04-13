@@ -18,5 +18,5 @@ PLAYER_COLOR = (220, 40, 40)
 # =========================
 POLLUTION_START = 50.0          # pourcentage de départ
 POLLUTION_MAX = 100.0           # max
-POLLUTION_INCREASE = 2.0        # augmentation à chaque tick
+POLLUTION_INCREASE = 13.0       # augmentation à chaque tick
 POLLUTION_INTERVAL = 20.0       # en secondes
