@@ -12,3 +12,4 @@ class GameState(Enum):
     ISLAND = 2        # Écran de l'île
     PUZZLE = 3        # Écrans de puzzle/épreuves
     VICTORY = 4       # Écran de victoire
+    LOSE = 5

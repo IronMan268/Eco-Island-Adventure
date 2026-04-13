@@ -5,7 +5,7 @@ FPS = 60
 TEXT_SPEED = 2
 
 TILE_SIZE = 32
-PLAYER_SPEED = 250
+PLAYER_SPEED = 200
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -19,4 +19,4 @@ PLAYER_COLOR = (220, 40, 40)
 POLLUTION_START = 50.0          # pourcentage de départ
 POLLUTION_MAX = 100.0           # max
 POLLUTION_INCREASE = 2.0        # augmentation à chaque tick
-POLLUTION_INTERVAL = 60.0       # en secondes
+POLLUTION_INTERVAL = 20.0       # en secondes
