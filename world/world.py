@@ -2,6 +2,7 @@ from constants import TILE_SIZE
 from .generation import generate_world_data
 from .collisions import rect_collides_world
 from .render import draw_world
+import pygame
 
 
 class World:
@@ -18,6 +19,7 @@ class World:
         self.decorations = []
         self.collision_rects = []
         self.zones = {}
+        self.sign_rect = pygame.Rect(0, 0, 1, 1)
 
         self.generate_world()
 
@@ -27,11 +29,15 @@ class World:
         self.decorations = data["decorations"]
         self.collision_rects = data["collision_rects"]
         self.zones = data["zones"]
+        self.sign_rect = data["sign_rect"]
 
     def get_spawn_position(self):
         x = self.spawn_tile[0] * TILE_SIZE + 5
         y = self.spawn_tile[1] * TILE_SIZE + 12
         return x, y
+
+    def get_sign_rect(self):
+        return self.sign_rect
 
     def rect_collides(self, rect):
         return rect_collides_world(

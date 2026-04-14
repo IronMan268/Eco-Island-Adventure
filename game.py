@@ -11,8 +11,7 @@ from mini_game_lake_cleanup import MiniGameLakeCleanup
 from minigame_reforestation import MiniGameReforestation
 
 
-
-class PlaceholderMiniGame:
+class MiniJeuTemporaire:
     def __init__(self, screen, player, mission_key):
         self.screen = screen
         self.player = player
@@ -74,26 +73,29 @@ class Game:
         self.player = Player(spawn_x, spawn_y)
 
         self.pollution = PollutionSystem()
-
         self.npcs = self.create_npcs()
 
         self.minigame = None
         self.current_npc = None
         self.game_over_reason = ""
 
+        self.font_panneau = pygame.font.SysFont("consolas", 20, bold=True)
+        self.font_panneau_petit = pygame.font.SysFont("consolas", 16, bold=True)
+        self.panneau_ouvert = False
+
     def create_npcs(self):
-        npcs = []
+        liste_npcs = []
 
         for data in NPCS_DATA:
             px, py = npc_tile_to_pixel(data["tile_x"], data["tile_y"])
 
-            npc_config = dict(data)
-            npc_config["x"] = px
-            npc_config["y"] = py
+            config_npc = dict(data)
+            config_npc["x"] = px
+            config_npc["y"] = py
 
-            npcs.append(MissionNPC(npc_config))
+            liste_npcs.append(MissionNPC(config_npc))
 
-        return npcs
+        return liste_npcs
 
     def restart_game(self):
         self.__init__()
@@ -106,14 +108,13 @@ class Game:
         self.minigame = self.build_minigame_for(npc.mission_key)
         self.state = "minigame"
 
-
     def build_minigame_for(self, mission_key):
         if mission_key == "reforestation":
             return MiniGameReforestation(self.screen, self.player)
         elif mission_key == "lake_cleanup":
             return MiniGameLakeCleanup(self.screen, self.player)
         else:
-            return PlaceholderMiniGame(self.screen, self.player, mission_key)
+            return MiniJeuTemporaire(self.screen, self.player, mission_key)
 
     def check_victory(self):
         if self.pollution.value <= 0:
@@ -145,6 +146,42 @@ class Game:
         self.game_over_reason = reason
         self.state = "game_over"
 
+    def joueur_proche_du_panneau(self):
+        zone = self.world.get_sign_rect()
+        return self.player.rect.colliderect(zone.inflate(30, 30))
+
+    def dessiner_message_panneau(self):
+        fond = pygame.Surface((760, 190), pygame.SRCALPHA)
+        fond.fill((10, 16, 24, 230))
+        self.screen.blit(fond, (WIDTH // 2 - 380, HEIGHT - 230))
+
+        lignes = [
+            "Mission de l'ile :",
+            "Parle avec les habitants pour sauver l'ile.",
+            "Chaque mission reussie fait baisser la pollution.",
+            "Explore les chemins et aide chaque zone."
+        ]
+
+        y = HEIGHT - 210
+        for i, texte in enumerate(lignes):
+            font = self.font_panneau if i == 0 else self.font_panneau_petit
+            rendu = font.render(texte, True, WHITE)
+            self.screen.blit(rendu, (WIDTH // 2 - rendu.get_width() // 2, y))
+            y += 36
+
+    def dessiner_aide_panneau(self):
+        if self.panneau_ouvert:
+            return
+
+        if self.joueur_proche_du_panneau():
+            texte = self.font_panneau_petit.render("Appuie sur E pour lire la pancarte", True, WHITE)
+            fond = pygame.Surface((texte.get_width() + 28, 36), pygame.SRCALPHA)
+            fond.fill((0, 0, 0, 140))
+            x = WIDTH // 2 - fond.get_width() // 2
+            y = HEIGHT - 60
+            self.screen.blit(fond, (x, y))
+            self.screen.blit(texte, (x + 14, y + 8))
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -156,11 +193,19 @@ class Game:
                     self.state = "world"
 
             elif self.state == "world":
-                for npc in self.npcs:
-                    result = npc.handle_event(event)
-                    if result == "accept":
-                        self.start_npc_mission(npc)
-                        break
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
+                    if self.joueur_proche_du_panneau():
+                        self.panneau_ouvert = not self.panneau_ouvert
+
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and self.panneau_ouvert:
+                    self.panneau_ouvert = False
+
+                if not self.panneau_ouvert:
+                    for npc in self.npcs:
+                        result = npc.handle_event(event)
+                        if result == "accept":
+                            self.start_npc_mission(npc)
+                            break
 
             elif self.state == "minigame":
                 self.minigame.handle_event(event)
@@ -188,7 +233,9 @@ class Game:
 
         elif self.state == "world":
             keys = pygame.key.get_pressed()
-            self.player.update(keys, self.world, dt)
+            if not self.panneau_ouvert:
+                self.player.update(keys, self.world, dt)
+
             self.pollution.update(dt)
 
             for npc in self.npcs:
@@ -202,9 +249,6 @@ class Game:
 
         elif self.state == "minigame":
             self.minigame.update(dt)
-
-        elif self.state in ("victory", "game_over"):
-            pass
 
     def draw(self):
         if self.state == "intro":
@@ -231,6 +275,11 @@ class Game:
             for npc in self.npcs:
                 npc.draw_dialog(self.screen)
 
+            self.dessiner_aide_panneau()
+
+            if self.panneau_ouvert:
+                self.dessiner_message_panneau()
+
         elif self.state == "minigame":
             self.minigame.draw()
 
@@ -248,4 +297,3 @@ class Game:
             self.handle_events()
             self.update(dt)
             self.draw()
-

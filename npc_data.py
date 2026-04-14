@@ -1,16 +1,7 @@
 from constants import TILE_SIZE
 
 # =========================================================
-# CONFIG FACILE DES NPC
-# - id : identifiant unique
-# - name : nom affiché
-# - image : image du npc
-# - tile_x / tile_y : position sur la map en tuiles
-# - mission_key : identifiant du mini-jeu / mission
-# - pollution_reward : combien de pollution on enlève
-# - default_lines : dialogue avant mission
-# - done_lines : dialogue après mission
-# - reward_decor : décor affiché après mission
+# DONNEES DES NPC
 # =========================================================
 
 NPCS_DATA = [
@@ -18,19 +9,19 @@ NPCS_DATA = [
         "id": "bear",
         "name": "Ours protecteur",
         "image": "assets/npc_ours.png",
-        "tile_x": 42,
-        "tile_y": 92,
+        "tile_x": 68,
+        "tile_y": 96,
         "mission_key": "reforestation",
         "pollution_reward": 20,
         "default_lines": [
-            "Cette partie de l'ile est encore fragile...",
-            "Veux-tu m'aider a replanter des pousses ?",
+            "La foret a besoin d'aide...",
+            "Parle avec les habitants et replante des pousses.",
             "Si tu reussis, la pollution baissera de 20%."
         ],
         "done_lines": [
             "Merci pour ton aide.",
-            "Regarde, la nature revient deja.",
-            "De nouveaux sapins ont pousse ici."
+            "La nature revient peu a peu.",
+            "Les sapins repoussent deja."
         ],
         "reward_decor": [
             {"type": "snow_pine", "dx": -90, "dy": 6, "size": 0},
@@ -45,13 +36,13 @@ NPCS_DATA = [
         "name": "Phoque du lac",
         "image": "assets/npc_phoque.png",
         "tile_x": 110,
-        "tile_y": 38,
+        "tile_y": 55,
         "mission_key": "lake_cleanup",
         "pollution_reward": 10,
         "default_lines": [
-            "Le lac devient de plus en plus froid et sale...",
-            "J'aurais besoin d'aide pour nettoyer cette zone.",
-            "Une mission ici pourrait reduire la pollution."
+            "Le lac est de plus en plus sale...",
+            "Aide-moi a nettoyer cette zone.",
+            "Chaque mission sauve un peu plus l'ile."
         ],
         "done_lines": [
             "Le lac respire mieux maintenant.",
@@ -63,17 +54,17 @@ NPCS_DATA = [
         ],
     },
 
-   {
+    {
         "id": "fox",
         "name": "Renard eclaireur",
         "image": "assets/renard.png",
-        "tile_x": 155,
-        "tile_y": 115,
+        "tile_x": 150,
+        "tile_y": 110,
         "mission_key": "forest_sorting",
         "pollution_reward": 10,
         "default_lines": [
-            "Cette zone est completement detruite...",
-            "La pollution a tout envahi ici.",
+            "Cette zone est tres abimee...",
+            "La pollution a envahi la neige.",
             "On doit agir vite."
         ],
         "done_lines": [
@@ -89,15 +80,15 @@ NPCS_DATA = [
     {
         "id": "penguin",
         "name": "Pingouin ingenieur",
-        "image": "assets/npc_ours.png",
-        "tile_x": 176,
-        "tile_y": 42,
+        "image": "assets/npc_pingouin.png",
+        "tile_x": 160,
+        "tile_y": 52,
         "mission_key": "ice_repair",
         "pollution_reward": 10,
         "default_lines": [
-            "Les falaises gelees s'abiment peu a peu.",
-            "Il faudra reparer cette zone plus tard.",
-            "Je pourrai te confier une mission."
+            "La glace se casse peu a peu.",
+            "Cette zone devra etre reparee.",
+            "Je te confierai une mission."
         ],
         "done_lines": [
             "La banquise tient mieux maintenant.",
@@ -111,7 +102,11 @@ NPCS_DATA = [
 ]
 
 
-def npc_tile_to_pixel(tile_x, tile_y):
+def tuile_vers_pixel(tile_x, tile_y):
     x = tile_x * TILE_SIZE + 4
     y = tile_y * TILE_SIZE - 8
     return x, y
+
+
+def npc_tile_to_pixel(tile_x, tile_y):
+    return tuile_vers_pixel(tile_x, tile_y)
