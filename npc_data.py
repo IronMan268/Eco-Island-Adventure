@@ -63,22 +63,22 @@ NPCS_DATA = [
         ],
     },
 
-    {
+   {
         "id": "fox",
         "name": "Renard eclaireur",
-        "image": "assets/npc_ours.png",
-        "tile_x": 28,
-        "tile_y": 36,
+        "image": "assets/renard.png",
+        "tile_x": 155,
+        "tile_y": 115,
         "mission_key": "forest_sorting",
         "pollution_reward": 10,
         "default_lines": [
-            "La foret garde encore ses secrets...",
-            "Il faudrait la remettre en ordre.",
-            "Tu peux m'aider quand tu veux."
+            "Cette zone est completement detruite...",
+            "La pollution a tout envahi ici.",
+            "On doit agir vite."
         ],
         "done_lines": [
-            "La foret est plus calme maintenant.",
-            "Tu as bien travaille."
+            "L'air est plus respirable maintenant.",
+            "Tu as nettoye une zone critique."
         ],
         "reward_decor": [
             {"type": "snow_pine", "dx": -55, "dy": 20, "size": 1},
