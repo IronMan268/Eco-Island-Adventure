@@ -7,6 +7,9 @@ from pollution import PollutionSystem
 from npc import MissionNPC
 from npc_data import NPCS_DATA, npc_tile_to_pixel
 from end_screen import EndScreen
+from mini_game_lake_cleanup import MiniGameLakeCleanup
+from minigame_reforestation import MiniGameReforestation
+
 
 
 class PlaceholderMiniGame:
@@ -103,8 +106,14 @@ class Game:
         self.minigame = self.build_minigame_for(npc.mission_key)
         self.state = "minigame"
 
+
     def build_minigame_for(self, mission_key):
-        return PlaceholderMiniGame(self.screen, self.player, mission_key)
+        if mission_key == "reforestation":
+            return MiniGameReforestation(self.screen, self.player)
+        elif mission_key == "lake_cleanup":
+            return MiniGameLakeCleanup(self.screen, self.player)
+        else:
+            return PlaceholderMiniGame(self.screen, self.player, mission_key)
 
     def check_victory(self):
         if self.pollution.value <= 0:
@@ -239,3 +248,4 @@ class Game:
             self.handle_events()
             self.update(dt)
             self.draw()
+
