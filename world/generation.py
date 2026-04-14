@@ -9,6 +9,18 @@ def dans_la_map(x, y, largeur, hauteur):
     return 0 <= x < largeur and 0 <= y < hauteur
 
 
+def mettre_chemin(tiles, x, y, largeur, hauteur):
+    if dans_la_map(x, y, largeur, hauteur) and tiles[y][x] != 0:
+        tiles[y][x] = 3
+
+
+def remplir_zone(tiles, x1, y1, x2, y2, largeur, hauteur, valeur):
+    for y in range(y1, y2 + 1):
+        for x in range(x1, x2 + 1):
+            if dans_la_map(x, y, largeur, hauteur) and tiles[y][x] != 0:
+                tiles[y][x] = valeur
+
+
 def creer_terrain_base(largeur, hauteur):
     random.seed(19)
 
@@ -31,15 +43,6 @@ def creer_terrain_base(largeur, hauteur):
                 tiles[y][x] = 0
 
     return tiles
-
-
-def creer_place_depart(tiles, spawn_tile, largeur, hauteur):
-    sx, sy = spawn_tile
-
-    for y in range(sy - 6, sy + 7):
-        for x in range(sx - 8, sx + 9):
-            if dans_la_map(x, y, largeur, hauteur):
-                tiles[y][x] = 3
 
 
 def creer_zones(largeur, hauteur, spawn_tile):
@@ -75,21 +78,16 @@ def appliquer_zone_lac(tiles, zone, largeur, hauteur):
 def appliquer_zone_polluee(tiles, zone, largeur, hauteur):
     for y in range(zone.top, zone.bottom):
         for x in range(zone.left, zone.right):
-            if not dans_la_map(x, y, largeur, hauteur):
-                continue
-
-            if tiles[y][x] != 0:
+            if dans_la_map(x, y, largeur, hauteur) and tiles[y][x] != 0:
                 tiles[y][x] = 4
 
 
 def appliquer_zone_falaise(tiles, zone, largeur, hauteur):
     for y in range(zone.top, zone.bottom):
         for x in range(zone.left, zone.right):
-            if not dans_la_map(x, y, largeur, hauteur):
-                continue
-
-            if tiles[y][x] == 2 and (x + y) % 4 != 0:
-                tiles[y][x] = 1
+            if dans_la_map(x, y, largeur, hauteur):
+                if tiles[y][x] == 2 and (x + y) % 4 != 0:
+                    tiles[y][x] = 1
 
 
 def appliquer_village(tiles, zone, largeur, hauteur):
@@ -99,91 +97,149 @@ def appliquer_village(tiles, zone, largeur, hauteur):
                 tiles[y][x] = 3
 
 
-def tracer_chemin(tiles, x1, y1, x2, y2, largeur, hauteur, epaisseur=1):
-    x = x1
-    y = y1
+def tracer_ligne_horizontale(tiles, x1, x2, y, largeur, hauteur, epaisseur=1):
+    if x1 > x2:
+        x1, x2 = x2, x1
 
-    while x != x2:
-        if x2 > x:
-            x += 1
-        else:
-            x -= 1
-
+    for x in range(x1, x2 + 1):
         for oy in range(-epaisseur, epaisseur + 1):
             for ox in range(-epaisseur, epaisseur + 1):
-                tx = x + ox
-                ty = y + oy
-                if dans_la_map(tx, ty, largeur, hauteur) and tiles[ty][tx] != 0:
-                    tiles[ty][tx] = 3
+                mettre_chemin(tiles, x + ox, y + oy, largeur, hauteur)
 
-    while y != y2:
-        if y2 > y:
-            y += 1
-        else:
-            y -= 1
 
+def tracer_ligne_verticale(tiles, x, y1, y2, largeur, hauteur, epaisseur=1):
+    if y1 > y2:
+        y1, y2 = y2, y1
+
+    for y in range(y1, y2 + 1):
         for oy in range(-epaisseur, epaisseur + 1):
             for ox in range(-epaisseur, epaisseur + 1):
-                tx = x + ox
-                ty = y + oy
-                if dans_la_map(tx, ty, largeur, hauteur) and tiles[ty][tx] != 0:
-                    tiles[ty][tx] = 3
+                mettre_chemin(tiles, x + ox, y + oy, largeur, hauteur)
 
 
-def relier_place_aux_npcs(tiles, spawn_tile, largeur, hauteur):
+def tracer_chemin_L(tiles, x1, y1, x2, y2, largeur, hauteur, epaisseur=1):
+    tracer_ligne_horizontale(tiles, x1, x2, y1, largeur, hauteur, epaisseur)
+    tracer_ligne_verticale(tiles, x2, y1, y2, largeur, hauteur, epaisseur)
+
+
+def tracer_chemin_points(tiles, points, largeur, hauteur, epaisseur=1):
+    for i in range(len(points) - 1):
+        x1, y1 = points[i]
+        x2, y2 = points[i + 1]
+        tracer_chemin_L(tiles, x1, y1, x2, y2, largeur, hauteur, epaisseur)
+
+
+def creer_place_depart(tiles, spawn_tile, largeur, hauteur):
     sx, sy = spawn_tile
+    remplir_zone(tiles, sx - 8, sy - 6, sx + 8, sy + 6, largeur, hauteur, 3)
+
+
+def creer_chemins_centre(tiles, spawn_tile, largeur, hauteur):
+    sx, sy = spawn_tile
+
+    tracer_ligne_horizontale(tiles, sx - 18, sx + 18, sy, largeur, hauteur, 1)
+    tracer_ligne_verticale(tiles, sx, sy - 12, sy + 12, largeur, hauteur, 1)
+    tracer_ligne_horizontale(tiles, sx - 8, sx + 8, sy - 8, largeur, hauteur, 1)
+
+
+def faire_place_npc(tiles, tx, ty, largeur, hauteur):
+    remplir_zone(tiles, tx - 1, ty - 1, tx + 1, ty + 1, largeur, hauteur, 3)
+    remplir_zone(tiles, tx - 2, ty + 1, tx + 2, ty + 2, largeur, hauteur, 3)
+
+
+def chemins_npc(spawn_tile):
+    sx, sy = spawn_tile
+
+    return {
+        "bear": [
+            (sx, sy),
+            (sx - 14, sy),
+            (sx - 22, sy + 10),
+            (sx - 32, sy + 20),
+            (68, 96),
+        ],
+        "seal": [
+            (sx, sy),
+            (sx, sy - 18),
+            (sx + 6, sy - 24),
+            (102, 55),
+            (110, 55),
+        ],
+        "fox": [
+            (sx, sy),
+            (sx + 18, sy),
+            (sx + 26, sy + 12),
+            (145, 110),
+            (150, 110),
+        ],
+        "penguin": [
+            (sx, sy),
+            (sx + 18, sy),
+            (sx + 28, sy - 12),
+            (150, 52),
+            (160, 52),
+        ],
+    }
+
+
+def relier_npcs(tiles, spawn_tile, largeur, hauteur):
+    chemins = chemins_npc(spawn_tile)
 
     for npc in NPCS_DATA:
-        tx = npc["tile_x"]
-        ty = npc["tile_y"]
+        route = chemins.get(npc["id"])
 
-        # chemin simple en L depuis la place centrale
-        tracer_chemin(tiles, sx, sy, tx, sy, largeur, hauteur, epaisseur=1)
-        tracer_chemin(tiles, tx, sy, tx, ty, largeur, hauteur, epaisseur=1)
+        if route is None:
+            route = [spawn_tile, (npc["tile_x"], npc["tile_y"])]
 
-        # petite place devant chaque npc
-        for y in range(ty - 1, ty + 2):
-            for x in range(tx - 1, tx + 2):
-                if dans_la_map(x, y, largeur, hauteur) and tiles[y][x] != 0:
-                    tiles[y][x] = 3
-
-
-def ajouter_petit_reseau_central(tiles, spawn_tile, largeur, hauteur):
-    sx, sy = spawn_tile
-
-    tracer_chemin(tiles, sx - 10, sy, sx + 10, sy, largeur, hauteur, epaisseur=1)
-    tracer_chemin(tiles, sx, sy - 8, sx, sy + 8, largeur, hauteur, epaisseur=1)
+        tracer_chemin_points(tiles, route, largeur, hauteur, 1)
+        faire_place_npc(tiles, npc["tile_x"], npc["tile_y"], largeur, hauteur)
 
 
 def generer_panneau_central(spawn_tile):
     sx, sy = spawn_tile
-    px = sx * TILE_SIZE - 12
-    py = sy * TILE_SIZE - 52
 
-    rect_collision = pygame.Rect(px + 8, py + 26, 18, 14)
+    panneau_tile_x = sx
+    panneau_tile_y = sy - 3
+
+    px = panneau_tile_x * TILE_SIZE
+    py = panneau_tile_y * TILE_SIZE - 22
+
+    rect_collision = pygame.Rect(px + 8, py + 24, 16, 18)
 
     deco = {
         "type": "pancarte_centrale",
         "x": px,
-        "y": py
+        "y": py,
     }
 
     return deco, rect_collision
 
 
+def marquer_arbres_autour_ours(decorations):
+    for deco in decorations:
+        if deco.get("type") != "snow_pine":
+            continue
+
+        tile_x = deco["x"] // TILE_SIZE
+        tile_y = deco["y"] // TILE_SIZE
+
+        if 60 <= tile_x <= 76 and 88 <= tile_y <= 102:
+            deco["type"] = "polluted_tree"
+            deco["zone_tag"] = "bear_forest"
+
+
 def generate_world_data(width, height, spawn_tile):
     tiles = creer_terrain_base(width, height)
-    creer_place_depart(tiles, spawn_tile, width, height)
-
     zones = creer_zones(width, height, spawn_tile)
 
     appliquer_zone_lac(tiles, zones["lake"], width, height)
     appliquer_zone_falaise(tiles, zones["cliffs"], width, height)
     appliquer_zone_polluee(tiles, zones["polluted"], width, height)
-    appliquer_village(tiles, zones["igloo_village"], width, height)
 
-    ajouter_petit_reseau_central(tiles, spawn_tile, width, height)
-    relier_place_aux_npcs(tiles, spawn_tile, width, height)
+    creer_place_depart(tiles, spawn_tile, width, height)
+    appliquer_village(tiles, zones["igloo_village"], width, height)
+    creer_chemins_centre(tiles, spawn_tile, width, height)
+    relier_npcs(tiles, spawn_tile, width, height)
 
     decorations, collision_rects = generate_zone_decorations(
         tiles=tiles,
@@ -192,6 +248,8 @@ def generate_world_data(width, height, spawn_tile):
         height=height,
         spawn_tile=spawn_tile
     )
+
+    marquer_arbres_autour_ours(decorations)
 
     deco_panneau, rect_panneau = generer_panneau_central(spawn_tile)
     decorations.append(deco_panneau)

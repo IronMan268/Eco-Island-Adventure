@@ -39,6 +39,19 @@ class World:
     def get_sign_rect(self):
         return self.sign_rect
 
+    def get_tile(self, tile_x, tile_y):
+        if 0 <= tile_x < self.width and 0 <= tile_y < self.height:
+            return self.tiles[tile_y][tile_x]
+        return 0
+
+    def get_tile_at_pixel(self, px, py):
+        tile_x = int(px // TILE_SIZE)
+        tile_y = int(py // TILE_SIZE)
+        return self.get_tile(tile_x, tile_y)
+
+    def is_water_at_pixel(self, px, py):
+        return self.get_tile_at_pixel(px, py) == 0
+
     def rect_collides(self, rect):
         return rect_collides_world(
             rect=rect,
@@ -49,6 +62,16 @@ class World:
             pixel_width=self.pixel_width,
             pixel_height=self.pixel_height,
         )
+
+    def update_bear_trees(self, mission_done):
+        for deco in self.decorations:
+            if deco.get("zone_tag") == "bear_forest":
+                if mission_done:
+                    if deco.get("type") == "polluted_tree":
+                        deco["type"] = "snow_pine"
+                else:
+                    if deco.get("type") == "snow_pine":
+                        deco["type"] = "polluted_tree"
 
     def draw(self, screen, camera_x, camera_y):
         draw_world(

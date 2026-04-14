@@ -1,12 +1,17 @@
+import os
 import pygame
 from .config import (
     IGLOO_IMAGE_PATH,
     IGLOO_SIZES,
     IGLOO_DRAW_OFFSET_X,
     IGLOO_DRAW_OFFSET_Y,
+    SNOW_PINE_IMAGE_PATH,
+    POLLUTED_TREE_IMAGE_PATH,
+    POLLUTED_SIGN_IMAGE_PATH,
 )
 
 _igloo_cache = {}
+_image_cache = {}
 
 
 def trim_transparent(surface):
@@ -18,6 +23,30 @@ def trim_transparent(surface):
 
     rect = rects[0]
     return surface.subsurface(rect).copy()
+
+
+def load_cached_image(path, size):
+    key = (path, size)
+
+    if key in _image_cache:
+        return _image_cache[key]
+
+    if not os.path.exists(path):
+        _image_cache[key] = None
+        return None
+
+    try:
+        image = pygame.image.load(path).convert_alpha()
+        image = trim_transparent(image)
+
+        if size is not None:
+            image = pygame.transform.scale(image, size)
+
+        _image_cache[key] = image
+        return image
+    except Exception:
+        _image_cache[key] = None
+        return None
 
 
 def get_igloo_sprite(size):
@@ -62,6 +91,12 @@ def draw_decoration(screen, deco, camera_x, camera_y):
         draw_warning_sign(screen, x, y)
     elif t == "igloo":
         draw_igloo(screen, x, y, deco.get("size", 0))
+    elif t == "pancarte_centrale":
+        draw_pancarte_centrale(screen, x, y)
+    elif t == "polluted_tree":
+        draw_polluted_tree(screen, x, y, deco.get("size", 0))
+    elif t == "polluted_sign":
+        draw_polluted_sign(screen, x, y)
 
 
 def draw_rock_snow(screen, x, y, size):
@@ -87,6 +122,19 @@ def draw_ice_chunk(screen, x, y, size):
 
 
 def draw_snow_pine(screen, x, y, size):
+    image = load_cached_image(
+        SNOW_PINE_IMAGE_PATH,
+        (34, 42) if size == 0 else (42, 50)
+    )
+
+    if image:
+        shadow = pygame.Surface((28, 8), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow, (0, 0, 0, 35), (0, 0, 28, 8))
+        screen.blit(shadow, (x + 4, y + 28))
+        screen.blit(image, (x - 1, y - 10))
+        return
+
+    # Fallback si l'image n'existe pas encore
     trunk_h = 12 if size == 0 else 14
 
     shadow = pygame.Surface((24, 8), pygame.SRCALPHA)
@@ -205,3 +253,50 @@ def draw_warning_sign(screen, x, y):
 def draw_igloo(screen, x, y, size):
     sprite = get_igloo_sprite(size)
     screen.blit(sprite, (x + IGLOO_DRAW_OFFSET_X, y + IGLOO_DRAW_OFFSET_Y))
+
+
+def draw_pancarte_centrale(screen, x, y):
+    shadow = pygame.Surface((32, 10), pygame.SRCALPHA)
+    pygame.draw.ellipse(shadow, (0, 0, 0, 40), (0, 0, 32, 10))
+    screen.blit(shadow, (x, y + 34))
+
+    pygame.draw.rect(screen, (109, 82, 55), (x + 14, y + 18, 6, 22))
+    pygame.draw.rect(screen, (197, 166, 110), (x + 1, y + 2, 32, 18), border_radius=3)
+    pygame.draw.rect(screen, (108, 82, 52), (x + 1, y + 2, 32, 18), 2, border_radius=3)
+
+    pygame.draw.line(screen, (135, 102, 66), (x + 5, y + 8), (x + 29, y + 8), 1)
+    pygame.draw.line(screen, (135, 102, 66), (x + 5, y + 12), (x + 25, y + 12), 1)
+
+
+def draw_polluted_tree(screen, x, y, size):
+    image = load_cached_image(POLLUTED_TREE_IMAGE_PATH, (36, 44) if size == 0 else (44, 52))
+
+    if image:
+        screen.blit(image, (x - 2, y - 10))
+        return
+
+    shadow = pygame.Surface((28, 8), pygame.SRCALPHA)
+    pygame.draw.ellipse(shadow, (0, 0, 0, 35), (0, 0, 28, 8))
+    screen.blit(shadow, (x + 3, y + 28))
+
+    pygame.draw.rect(screen, (82, 58, 36), (x + 13, y + 18, 6, 14))
+    pygame.draw.polygon(screen, (70, 92, 62), [(x + 16, y + 3), (x + 5, y + 18), (x + 27, y + 18)])
+    pygame.draw.polygon(screen, (88, 106, 66), [(x + 16, y + 10), (x + 3, y + 23), (x + 29, y + 23)])
+    pygame.draw.polygon(screen, (96, 120, 70), [(x + 16, y + 15), (x + 1, y + 30), (x + 31, y + 30)])
+
+    pygame.draw.circle(screen, (78, 135, 82), (x + 10, y + 17), 3)
+    pygame.draw.circle(screen, (86, 150, 88), (x + 21, y + 21), 3)
+
+
+def draw_polluted_sign(screen, x, y):
+    image = load_cached_image(POLLUTED_SIGN_IMAGE_PATH, (28, 32))
+
+    if image:
+        screen.blit(image, (x + 2, y))
+        return
+
+    pygame.draw.rect(screen, (110, 85, 55), (x + 13, y + 12, 5, 18))
+    pygame.draw.rect(screen, (214, 198, 90), (x + 4, y + 2, 24, 14), border_radius=2)
+    pygame.draw.rect(screen, (80, 66, 35), (x + 4, y + 2, 24, 14), 2, border_radius=2)
+    pygame.draw.line(screen, (45, 45, 45), (x + 9, y + 6), (x + 23, y + 12), 2)
+    pygame.draw.line(screen, (45, 45, 45), (x + 23, y + 6), (x + 9, y + 12), 2)

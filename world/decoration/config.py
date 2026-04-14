@@ -7,9 +7,9 @@ import os
 IGLOO_IMAGE_PATH = os.path.join("assets", "decor", "igloo.png")
 
 IGLOO_SIZES = {
-    0: (34, 26),
-    1: (46, 34),
-    2: (58, 42),
+    0: (70, 60),
+    1: (80, 68),
+    2: (104, 88),
 }
 
 IGLOO_DRAW_OFFSET_X = 0
@@ -31,29 +31,42 @@ IGLOO_VILLAGE_LAYOUT = [
 ]
 
 # =========================
+# IMAGES DE DECOR
+# =========================
+
+SNOW_PINE_IMAGE_PATH = os.path.join("assets", "decor", "arbre.png")
+POLLUTED_TREE_IMAGE_PATH = os.path.join("assets", "decor", "arbre_pollue.png")
+POLLUTED_SIGN_IMAGE_PATH = os.path.join("assets", "decor", "poubelle.png")
+
+# =========================
 # CHANCES D'APPARITION
 # =========================
 
-FOREST_PINE_CHANCE = 0.30
+FOREST_PINE_CHANCE = 0.14
 FOREST_ROCK_CHANCE = 0.00
 
 LAKE_BIG_CRACK_CHANCE = 0.20
 LAKE_ICE_CHUNK_CHANCE = 0.28
 
-CLIFF_ICE_CHANCE = 0.17
-CLIFF_SNOW_CRACK_CHANCE = 0.24
+CLIFF_ICE_CHANCE = 0.14
+CLIFF_SNOW_CRACK_CHANCE = 0.22
 
-POLLUTED_BARREL_CHANCE = 0.09
-POLLUTED_TRASH_CHANCE = 0.18
-POLLUTED_OIL_CHANCE = 0.28
+# On coupe les vieux decors moches de la zone polluee
+POLLUTED_BARREL_CHANCE = 0.00
+POLLUTED_TRASH_CHANCE = 0.00
+POLLUTED_OIL_CHANCE = 0.00
 
-VILLAGE_PINE_CHANCE = 0.08
+# Nouveau decor plus propre
+POLLUTED_TREE_CHANCE = 0.08
+POLLUTED_SIGN_CHANCE = 0.03
+
+VILLAGE_PINE_CHANCE = 0.03
 VILLAGE_ROCK_CHANCE = 0.00
 
 GLOBAL_ROCK_CHANCE = 0.00
-GLOBAL_PINE_CHANCE = 0.09
-GLOBAL_SNOW_CRACK_CHANCE = 0.11
-GLOBAL_ICE_CRACK_CHANCE = 0.025
+GLOBAL_PINE_CHANCE = 0.025
+GLOBAL_SNOW_CRACK_CHANCE = 0.08
+GLOBAL_ICE_CRACK_CHANCE = 0.02
 
 # =========================
 # POSITIONS FIXES
@@ -70,4 +83,12 @@ POLLUTION_WARNING_OFFSETS = [
     (5, 5),
     (9, 9),
     (12, 6),
+]
+
+# Arbres pollues fixes autour de l'ours
+BEAR_POLLUTED_TREES = [
+    (63, 92),
+    (66, 98),
+    (72, 93),
+    (74, 99),
 ]

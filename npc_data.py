@@ -79,8 +79,8 @@ NPCS_DATA = [
 
     {
         "id": "penguin",
-        "name": "Pingouin ingenieur",
-        "image": "assets/npc_pingouin.png",
+        "name": "Orque ingenieur",
+        "image": "assets/orque.png",
         "tile_x": 160,
         "tile_y": 52,
         "mission_key": "ice_repair",

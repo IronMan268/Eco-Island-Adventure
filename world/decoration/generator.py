@@ -13,6 +13,8 @@ from .config import (
     POLLUTED_BARREL_CHANCE,
     POLLUTED_TRASH_CHANCE,
     POLLUTED_OIL_CHANCE,
+    POLLUTED_TREE_CHANCE,
+    POLLUTED_SIGN_CHANCE,
     VILLAGE_PINE_CHANCE,
     VILLAGE_ROCK_CHANCE,
     GLOBAL_ROCK_CHANCE,
@@ -21,6 +23,7 @@ from .config import (
     GLOBAL_ICE_CRACK_CHANCE,
     POLLUTION_WARNING_OFFSETS,
     EDGE_ICEBERG_POSITIONS,
+    BEAR_POLLUTED_TREES,
 )
 
 
@@ -30,10 +33,10 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
 
     sx, sy = spawn_tile
     spawn_safe_zone = pygame.Rect(
-        (sx - 3) * TILE_SIZE,
-        (sy - 3) * TILE_SIZE,
-        6 * TILE_SIZE,
-        6 * TILE_SIZE
+        (sx - 4) * TILE_SIZE,
+        (sy - 4) * TILE_SIZE,
+        8 * TILE_SIZE,
+        8 * TILE_SIZE
     )
 
     forest = zones["forest"]
@@ -82,7 +85,10 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
             py = y * TILE_SIZE
             tile_rect = pygame.Rect(px, py, TILE_SIZE, TILE_SIZE)
 
-            if forest.collidepoint(x, y) and tile in (2, 3):
+            if tile == 3:
+                continue
+
+            if forest.collidepoint(x, y) and tile == 2:
                 r = random.random()
 
                 if r < FOREST_PINE_CHANCE:
@@ -128,7 +134,7 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
                     })
                     collision_rects.append(rect)
 
-            elif cliffs.collidepoint(x, y) and tile in (2, 1):
+            elif cliffs.collidepoint(x, y) and tile in (1, 2):
                 r = random.random()
 
                 if r < CLIFF_ICE_CHANCE:
@@ -149,10 +155,29 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
                         "variant": random.randint(0, 2)
                     })
 
-            elif polluted.collidepoint(x, y) and tile in (4, 3, 2):
+            elif polluted.collidepoint(x, y) and tile in (2, 4):
                 r = random.random()
 
-                if r < POLLUTED_BARREL_CHANCE:
+                if r < POLLUTED_TREE_CHANCE:
+                    rect = pygame.Rect(px + 8, py + 16, 16, 10)
+                    decorations.append({
+                        "type": "polluted_tree",
+                        "x": px,
+                        "y": py - 6,
+                        "size": random.randint(0, 1)
+                    })
+                    collision_rects.append(rect)
+
+                elif r < POLLUTED_TREE_CHANCE + POLLUTED_SIGN_CHANCE:
+                    rect = pygame.Rect(px + 10, py + 16, 12, 10)
+                    decorations.append({
+                        "type": "polluted_sign",
+                        "x": px,
+                        "y": py + 1
+                    })
+                    collision_rects.append(rect)
+
+                elif r < POLLUTED_TREE_CHANCE + POLLUTED_SIGN_CHANCE + POLLUTED_BARREL_CHANCE:
                     rect = pygame.Rect(px + 9, py + 14, 14, 12)
                     decorations.append({
                         "type": "toxic_barrel",
@@ -161,7 +186,7 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
                     })
                     collision_rects.append(rect)
 
-                elif r < POLLUTED_TRASH_CHANCE:
+                elif r < POLLUTED_TREE_CHANCE + POLLUTED_SIGN_CHANCE + POLLUTED_BARREL_CHANCE + POLLUTED_TRASH_CHANCE:
                     rect = pygame.Rect(px + 7, py + 15, 18, 10)
                     decorations.append({
                         "type": "trash_pile",
@@ -171,7 +196,13 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
                     })
                     collision_rects.append(rect)
 
-                elif r < POLLUTED_OIL_CHANCE:
+                elif r < (
+                    POLLUTED_TREE_CHANCE
+                    + POLLUTED_SIGN_CHANCE
+                    + POLLUTED_BARREL_CHANCE
+                    + POLLUTED_TRASH_CHANCE
+                    + POLLUTED_OIL_CHANCE
+                ):
                     decorations.append({
                         "type": "oil_stain",
                         "x": px + 2,
@@ -179,7 +210,7 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
                         "size": random.randint(0, 1)
                     })
 
-            elif igloo_village.collidepoint(x, y) and tile in (3, 2):
+            elif igloo_village.collidepoint(x, y) and tile == 2:
                 r = random.random()
 
                 if r < VILLAGE_PINE_CHANCE and abs(x - village_cx) > 4:
@@ -243,6 +274,7 @@ def generate_zone_decorations(tiles, zones, width, height, spawn_tile):
 
     add_fixed_pollution_details(decorations, collision_rects, zones, tiles, width, height)
     add_edge_icebergs(decorations, collision_rects, tiles, width, height)
+    add_bear_polluted_trees(decorations, collision_rects, tiles, width, height)
 
     return decorations, collision_rects
 
@@ -257,8 +289,28 @@ def add_fixed_pollution_details(decorations, collision_rects, zones, tiles, widt
         if 0 <= tx < width and 0 <= ty < height and tiles[ty][tx] != 0:
             px = tx * TILE_SIZE
             py = ty * TILE_SIZE
-            decorations.append({"type": "warning_sign", "x": px, "y": py})
-            collision_rects.append(pygame.Rect(px + 8, py + 14, 12, 10))
+            decorations.append({"type": "polluted_sign", "x": px, "y": py})
+            collision_rects.append(pygame.Rect(px + 10, py + 16, 12, 10))
+
+
+def add_bear_polluted_trees(decorations, collision_rects, tiles, width, height):
+    for tx, ty in BEAR_POLLUTED_TREES:
+        if not (0 <= tx < width and 0 <= ty < height):
+            continue
+
+        if tiles[ty][tx] == 0 or tiles[ty][tx] == 3:
+            continue
+
+        px = tx * TILE_SIZE
+        py = ty * TILE_SIZE
+
+        decorations.append({
+            "type": "polluted_tree",
+            "x": px,
+            "y": py - 6,
+            "size": random.randint(0, 1)
+        })
+        collision_rects.append(pygame.Rect(px + 8, py + 16, 16, 10))
 
 
 def add_edge_icebergs(decorations, collision_rects, tiles, width, height):
