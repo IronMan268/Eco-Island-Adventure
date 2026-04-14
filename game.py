@@ -9,6 +9,7 @@ from npc_data import NPCS_DATA, npc_tile_to_pixel
 from end_screen import EndScreen
 from mini_game_lake_cleanup import MiniGameLakeCleanup
 from minigame_reforestation import MiniGameReforestation
+from mini_game_forest_sorting import MiniGameForestSorting
 
 
 class MiniJeuTemporaire:
@@ -52,6 +53,8 @@ class MiniJeuTemporaire:
         self.screen.blit(line1, (WIDTH // 2 - line1.get_width() // 2, 250))
         self.screen.blit(line2, (WIDTH // 2 - line2.get_width() // 2, 300))
         self.screen.blit(line3, (WIDTH // 2 - line3.get_width() // 2, 335))
+
+        
 
 
 class Game:
@@ -117,6 +120,9 @@ class Game:
 
         if mission_key == "lake_cleanup":
             return MiniGameLakeCleanup(self.screen, self.player)
+
+        if mission_key == "forest_sorting":
+            return MiniGameForestSorting(self.screen, self.player)
 
         return MiniJeuTemporaire(self.screen, self.player, mission_key)
 
